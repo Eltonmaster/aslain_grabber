@@ -19,16 +19,21 @@ ASLAIN_LOG_PATH = os.path.join(WOT_PATH, "Aslain_Modpack\\_Aslains_Installer.log
 def start_game():
     global DEBUG
     print("Starte Spiel")
-    app = pywinauto.Application().connect(path="wgc.exe")
-    form = app.window(title_re="Wargaming.net Game Center")
-    form_rect = form.rectangle()
-    height = form_rect.bottom - form_rect.top
-    width = form_rect.right - form_rect.left
+    sleep(2)
+    try:
+        app = pywinauto.Application().connect(path="wgc.exe")
+        form = app.window(title_re="Wargaming.net Game Center")
+        form_rect = form.rectangle()
+        height = form_rect.bottom - form_rect.top
+        width = form_rect.right - form_rect.left
 
-    right_move = int(width/100*10)
-    down_move = int(height/100*90)
+        right_move = int(width/100*10)
+        down_move = int(height/100*90)
 
-    form.click(coords=(right_move, down_move))
+        form.click(coords=(right_move, down_move))
+    except:
+        if DEBUG:
+            print("ERROR in der start_game function")
 
 def wait_for_patch():
     global DEBUG
