@@ -10,7 +10,6 @@ from xml.dom import minidom
 import re
 import pywinauto
 import sys
-from tqdm import tqdm
 
 WOT_PATH = "E:\\Games\\World_of_Tanks_EU"
 DEBUG = True
@@ -23,7 +22,6 @@ def update():
     print("Überprüfe auf Update")
     online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
     online_version = online_code.split("\n")[0][2:]
-    print(__file__)
     with open(__file__, "r") as f:
         local_code = f.read()
         local_version = local_code.split("\n")[0][2:]
