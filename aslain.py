@@ -29,11 +29,11 @@ def update():
         local_version = local_code.split("\n")[0][2:]
     if float(online_version) > float(local_version):
         print("Update gefunden!\nÜberschreibe lokalen Code")
-        with open(__file__, "w") as f:
+        with open(__file__, "w", encoding="utf-8") as f:
             f.write(online_code)
         print("Installieren der pip Packages")
         resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
-        with open("temp_requirements.txt", "w") as f:
+        with open("temp_requirements.txt", "w", encoding="utf-8") as f:
             f.write(resp)
         pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
         pip_process.wait()
