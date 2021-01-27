@@ -21,7 +21,7 @@ ASLAIN_LOG_PATH = os.path.join(WOT_PATH, "Aslain_Modpack\\_Aslains_Installer.log
 
 def update():
     print("Überprüfe auf Update")
-    online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").text
+    online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
     online_version = online_code.split("\n")[0][2:]
     print(__file__)
     with open(__file__, "r") as f:
@@ -32,7 +32,7 @@ def update():
         with open(__file__, "w") as f:
             f.write(online_code)
         print("Installieren der pip Packages")
-        resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").text
+        resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
         with open("temp_requirements.txt", "w") as f:
             f.write(resp)
         pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
