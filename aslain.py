@@ -1,4 +1,4 @@
-#V0.5
+#v0.6
 import requests
 import bs4
 import os
@@ -9,6 +9,8 @@ import json
 from xml.dom import minidom
 import re
 import pywinauto
+import sys
+from tqdm import tqdm
 
 WOT_PATH = "E:\\Games\\World_of_Tanks_EU"
 DEBUG = True
@@ -17,10 +19,33 @@ CONFIG_PATH = os.path.join(WOT_PATH, "mods\\configs\\spoter\\marksOnGunExtended\
 WOT_VERSION_PATH = os.path.join(WOT_PATH, "game_info.xml")
 ASLAIN_LOG_PATH = os.path.join(WOT_PATH, "Aslain_Modpack\\_Aslains_Installer.log")
 
+def update():
+    print("Überprüfe auf Update")
+    online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").text
+    online_version = online_code.split("\n")[0][2:]
+    print(__file__)
+    with open(__file__, "r") as f:
+        local_code = f.read()
+        local_version = local_code.split("\n")[0][2:]
+    if float(online_version) > float(local_version):
+        print("Update gefunden!\nÜberschreibe lokalen Code")
+        with open(__file__, "w") as f:
+            f.write(online_code)
+        print("Installieren der pip Packages")
+        resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").text
+        with open("temp_requirements.txt", "w") as f:
+            f.write(resp)
+        pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
+        pip_process.wait()
+        proc = Popen(["python", __file__])
+        sys.exit()
+    print("Neuste Version bereits installiert")
+
+
 def start_game():
     global DEBUG
     print("Starte Spiel")
-    sleep(2)
+    sleep(3)
     try:
         app = pywinauto.Application().connect(path="wgc.exe")
         form = app.window(title_re="Wargaming.net Game Center")
@@ -103,6 +128,9 @@ def config_moe():
     with open(CONFIG_PATH, "w") as f:
         f.write(output_string)
 
+
+
+update()
 
 appdata_path = os.getenv("LOCALAPPDATA")
 folder_path = os.path.join(appdata_path, "Aslain-Checker")
