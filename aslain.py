@@ -27,6 +27,10 @@ def update():
     with open(__file__, "r") as f:
         local_code = f.read()
         local_version = local_code.split("\n")[0][2:]
+        try:
+            float(local_version)
+        except:
+            local_version = "0.0"
     if float(online_version) > float(local_version):
         print("Update gefunden!\nÜberschreibe lokalen Code")
         with open(__file__, "w", encoding="utf-8") as f:
