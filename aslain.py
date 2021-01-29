@@ -38,6 +38,7 @@ def update():
             pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
             pip_process.wait()
             proc = Popen(["python", __file__])
+            proc.wait()
             sys.exit()
         print("Aslain Checker ist up to date")
     else:
