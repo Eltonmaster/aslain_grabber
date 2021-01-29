@@ -1,4 +1,4 @@
-#v0.6
+#v0.8
 import requests
 import bs4
 import os
@@ -8,60 +8,54 @@ from subprocess import Popen
 import json
 from xml.dom import minidom
 import re
-import pywinauto
 import sys
+from tqdm import tqdm
 
-WOT_PATH = "E:\\Games\\World_of_Tanks_EU"
 DEBUG = True
-
-CONFIG_PATH = os.path.join(WOT_PATH, "mods\\configs\\spoter\\marksOnGunExtended\\marksOnGunExtended.json")
-WOT_VERSION_PATH = os.path.join(WOT_PATH, "game_info.xml")
-ASLAIN_LOG_PATH = os.path.join(WOT_PATH, "Aslain_Modpack\\_Aslains_Installer.log")
+DEV = False
 
 def update():
-    print("Überprüfe auf Update")
-    online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
-    online_version = online_code.split("\n")[0][2:]
-    with open(__file__, "r") as f:
-        local_code = f.read()
-        local_version = local_code.split("\n")[0][2:]
-        try:
-            float(local_version)
-        except:
-            local_version = "0.0"
-    if float(online_version) > float(local_version):
-        print("Update gefunden!\nÜberschreibe lokalen Code")
-        with open(__file__, "w", encoding="utf-8") as f:
-            f.write(online_code)
-        print("Installieren der pip Packages")
-        resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
-        with open("temp_requirements.txt", "w", encoding="utf-8") as f:
-            f.write(resp)
-        pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
-        pip_process.wait()
-        proc = Popen(["python", __file__])
-        sys.exit()
-    print("Neuste Version bereits installiert")
+    if not DEV:
+        print("Überprüfe auf Aslain-Checker Update")
+        online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
+        online_version = online_code.split("\n")[0][2:]
+        print(__file__)
+        with open(__file__, "r") as f:
+            local_code = f.read()
+            local_version = local_code.split("\n")[0][2:]
+            try:
+                float(local_version)
+            except:
+                local_version = "0.0"
+        if float(online_version) > float(local_version):
+            print("Update gefunden!\nÜberschreibe lokalen Code")
+            with open(__file__, "w", encoding="utf-8") as f:
+                f.write(online_code)
+            print("Installieren der pip Packages")
+            resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
+            with open("temp_requirements.txt", "w", encoding="utf-8") as f:
+                f.write(resp)
+            pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
+            pip_process.wait()
+            proc = Popen(["python", __file__])
+            sys.exit()
+        print("Aslain Checker ist up to date")
+    else:
+        print("Skipping in dev mode")
 
 
 def start_game():
     global DEBUG
-    print("Starte Spiel")
-    sleep(3)
-    try:
-        app = pywinauto.Application().connect(path="wgc.exe")
-        form = app.window(title_re="Wargaming.net Game Center")
-        form_rect = form.rectangle()
-        height = form_rect.bottom - form_rect.top
-        width = form_rect.right - form_rect.left
-
-        right_move = int(width/100*10)
-        down_move = int(height/100*90)
-
-        form.click(coords=(right_move, down_move))
-    except:
-        if DEBUG:
-            print("ERROR in der start_game function")
+    if not DEV:
+        print("Starte Spiel")
+        sleep(1)
+        try:
+            proc = Popen(EXECUTABLE_PATH, stdin=None, stdout=None, stderr=None, close_fds=True)
+        except:
+            if DEBUG:
+                print("ERROR in der start_game function")
+    else:
+        print("Skipping in dev mode")
 
 def wait_for_patch():
     global DEBUG
@@ -130,6 +124,35 @@ def config_moe():
     with open(CONFIG_PATH, "w") as f:
         f.write(output_string)
 
+def get_config(checker_config_path):
+    if not os.path.exists(checker_config_path):
+        input("Es liegt noch keine Config-Datei vor. Bitte wähle den World of Tanks root Ordner aus. (fortfahren mit ENTER)")
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        wot_path = filedialog.askdirectory()
+        
+        config = {"wot_path":wot_path, "last_url": ""}
+        with open(checker_config_path, "w") as f:
+            f.write(json.dumps(config))
+        return (wot_path, "")
+
+    else:
+        print("loading config")
+        with open(checker_config_path, "r") as f:
+            config = json.loads(f.read())
+        if "last_url" not in config:
+            config["last_url"] = ""
+        return (config["wot_path"], config["last_url"])
+
+def update_config(key, value):
+    with open(checker_config_path, "r") as f:
+        config = json.loads(f.read())
+    config[key] = value
+    with open(checker_config_path, "w") as f:
+        f.write(json.dumps(config))
+
 
 
 update()
@@ -138,14 +161,19 @@ appdata_path = os.getenv("LOCALAPPDATA")
 folder_path = os.path.join(appdata_path, "Aslain-Checker")
 file_path = os.path.join(folder_path, "last_url")
 aslain_path = os.path.join(folder_path, "aslain_installer.exe")
+checker_config_path = os.path.join(folder_path, "config.json")
+
+WOT_PATH, LAST_URL = get_config(checker_config_path)
+
+CONFIG_PATH = os.path.join(WOT_PATH, "mods\\configs\\spoter\\marksOnGunExtended\\marksOnGunExtended.json")
+WOT_VERSION_PATH = os.path.join(WOT_PATH, "game_info.xml")
+ASLAIN_LOG_PATH = os.path.join(WOT_PATH, "Aslain_Modpack\\_Aslains_Installer.log")
+EXECUTABLE_PATH = os.path.join(WOT_PATH, "WorldOfTanks.exe")
+
+
 if not os.path.exists(folder_path):
     os.mkdir(folder_path)
 
-last_url = ""
-
-if os.path.exists(file_path):
-    with open(file_path, "r") as f:
-        last_url = f.read()
 
 resp = requests.get("https://aslain.com/index.php?/topic/13-download-%E2%98%85-world-of-tanks-%E2%98%85-modpack/")
 soup = bs4.BeautifulSoup(resp.text, "html.parser")
@@ -160,20 +188,24 @@ for entry in soup.find_all("a", href=True):
 aslain_version_short = re.search(r"\d+\.\d+\.\d", url).group(0)
 aslain_version_full = re.search(r"\d+\.\d+\.\d.+?.exe", url).group(0)[:-4]
 
-if url != last_url:
+if url != LAST_URL:
     print(f"Version {aslain_version_full} verfügbar!")
     print("Starte Download")
     with requests.get(url, stream=True) as rq:
         rq.raise_for_status()
-        with open(aslain_path, "wb") as f:
-            for chunk in rq.iter_content(chunk_size=1024):
-                f.write(chunk)    
+        length_in_byte = int(rq.headers["Content-Length"])
+        with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
+            with open(aslain_path, "wb") as f:
+                for chunk in rq.iter_content(chunk_size=1024):
+                    f.write(chunk)    
+                    pbar.update(len(chunk))
     print("Download Fertiggestellt")
     with open(file_path, "w") as f:
         f.write(url)
 
     wait_for_patch()
     wait_for_version(aslain_version_short)
+    update_config("last_url", url)
 
     print("Starte den neuen Installer")
     p = Popen(aslain_path)
