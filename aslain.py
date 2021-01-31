@@ -1,4 +1,4 @@
-#v0.82
+#v0.83
 import requests
 import bs4
 import os
@@ -14,6 +14,40 @@ from tqdm import tqdm
 DEBUG = True
 DEV = False
 START_GAME = True
+
+def version_compare(version1, version2):
+    # version1 < version2 -> -1
+    # version2 < version1 -> 1
+    # version1 = version2 -> 0
+    add_version_1 = ""
+    add_version_2 = ""
+    if "_" in version1:
+        add_version_1 = version1.split("_")[1]
+        version1 = version1.split("_")[0]
+    if "_" in version2:
+        add_version_2 = version2.split("_")[1]
+        version2 = version2.split("_")[0]
+    version_1_list = version1.split(".")
+    version_2_list = version2.split(".")
+    while len(version_1_list) != len(version_2_list):
+        if len(version_1_list) > len(version_2_list):
+            version_2_list.append("0")
+        else:
+            version_1_list.append("0")
+    print(version_1_list)
+    print(version_2_list)   
+    if version_2_list == version_1_list:
+        if add_version_1 > add_version_2:
+            return 1
+        if add_version_2 > add_version_1:
+            return -1
+        return 0
+    for i in range(0, len(version_1_list)):
+        if version_1_list[i] > version_2_list[i]:
+            return 1 
+        if version_2_list[i] > version_1_list[i]:
+            return -1
+   
 
 def update():
     if not DEV:
