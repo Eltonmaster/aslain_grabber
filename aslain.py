@@ -1,4 +1,4 @@
-#v0.8
+#v0.81
 import requests
 import bs4
 import os
@@ -37,7 +37,7 @@ def update():
                 f.write(resp)
             pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
             pip_process.wait()
-            proc = Popen(["python", __file__])
+            Popen(["python", __file__])
             sys.exit()
         print("Aslain Checker ist up to date")
     else:
@@ -50,7 +50,7 @@ def start_game():
         print("Starte Spiel")
         sleep(1)
         try:
-            proc = Popen(EXECUTABLE_PATH, stdin=None, stdout=None, stderr=None, close_fds=True)
+            Popen(EXECUTABLE_PATH)
         except:
             if DEBUG:
                 print("ERROR in der start_game function")
@@ -153,6 +153,25 @@ def update_config(key, value):
     with open(checker_config_path, "w") as f:
         f.write(json.dumps(config))
 
+def download_aslain(urllist):
+    print("Starte Download")
+    url = urllist.pop()
+    try:
+        with requests.get(url, stream=True) as rq:
+            rq.raise_for_status()
+            length_in_byte = int(rq.headers["Content-Length"])
+            with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
+                with open(aslain_path, "wb") as f:
+                    for chunk in rq.iter_content(chunk_size=1024):
+                        f.write(chunk)    
+                        pbar.update(len(chunk))
+        print("Download Fertiggestellt")
+        with open(file_path, "w") as f:
+            f.write(url)
+        return 
+    except Exception as e:
+        print(f"Error downloading {url}\nERROR: {e}\nRetrying with next url if possible")
+        return download_aslain(urllist)
 
 
 update()
@@ -180,32 +199,24 @@ soup = bs4.BeautifulSoup(resp.text, "html.parser")
 
 url = None
 
-for entry in soup.find_all("a", href=True):
-    if "ftp.wot.modpack" in entry["href"]:
-        url = entry["href"]
-        break
+search_keys = ["ftp.wot.modpack", "wot.flcl.eu/public", "aslain.legionriders.club", "modp.wgcdn.co/media/mod_files"]
+urls = []
 
-aslain_version_short = re.search(r"\d+\.\d+\.\d", url).group(0)
-aslain_version_full = re.search(r"\d+\.\d+\.\d.+?.exe", url).group(0)[:-4]
+for entry in soup.find_all("a", href=True):
+    for subentry in search_keys:
+        if subentry in entry["href"] and entry["href"].endswith(".exe"):
+            urls.append(entry["href"])
+
+aslain_version_short = re.search(r"\d+\.\d+\.\d", urls[0]).group(0)
+aslain_version_full = re.search(r"\d+\.\d+\.\d.+?.exe", urls[0]).group(0)[:-4]
+
 
 if url != LAST_URL:
     print(f"Version {aslain_version_full} verfügbar!")
-    print("Starte Download")
-    with requests.get(url, stream=True) as rq:
-        rq.raise_for_status()
-        length_in_byte = int(rq.headers["Content-Length"])
-        with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
-            with open(aslain_path, "wb") as f:
-                for chunk in rq.iter_content(chunk_size=1024):
-                    f.write(chunk)    
-                    pbar.update(len(chunk))
-    print("Download Fertiggestellt")
-    with open(file_path, "w") as f:
-        f.write(url)
 
+    download_aslain(urls)
     wait_for_patch()
     wait_for_version(aslain_version_short)
-    update_config("last_url", url)
 
     print("Starte den neuen Installer")
     p = Popen(aslain_path)
