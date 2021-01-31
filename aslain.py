@@ -1,4 +1,4 @@
-#v0.81
+#v0.82
 import requests
 import bs4
 import os
@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 DEBUG = True
 DEV = False
+START_GAME = True
 
 def update():
     if not DEV:
@@ -46,7 +47,7 @@ def update():
 
 def start_game():
     global DEBUG
-    if not DEV:
+    if not DEV and START_GAME:
         print("Starte Spiel")
         sleep(1)
         try:
@@ -92,14 +93,18 @@ def wait_for_aslain():
         if DEBUG: print(f"Log time diff: {time() - os.stat(ASLAIN_LOG_PATH).st_mtime}")
         sleep(.25)
     while True:
-        with open(ASLAIN_LOG_PATH, 'r') as f:
-            lines = f.read().splitlines()
-            last_line = lines[-1]
-            if "_Aslains_movetree_mods.bat at mods finished" in last_line:
-                break
-            if DEBUG: print(f"Aslain läuft noch - {last_line}")
-            sleep(.5)
-        
+        try:
+            with open(ASLAIN_LOG_PATH, 'r') as f:
+                lines = f.read().splitlines()
+                last_line = lines[-1]
+                if "_Aslains_movetree_mods.bat at mods finished" in last_line:
+                    break
+                if DEBUG: print(f"Aslain läuft noch - {last_line}")
+                sleep(.5)
+        except:
+            print("Error reading log file (file blocked?)")
+            print("Aslain probably finished")
+            break        
 
 def config_moe():
     global CONFIG_PATH
@@ -133,7 +138,7 @@ def get_config(checker_config_path):
         root.withdraw()
         wot_path = filedialog.askdirectory()
         
-        config = {"wot_path":wot_path, "last_url": ""}
+        config = {"wot_path":wot_path, "local_aslain_version": "", "aslain_installer_version":""}
         with open(checker_config_path, "w") as f:
             f.write(json.dumps(config))
         return (wot_path, "")
@@ -142,9 +147,11 @@ def get_config(checker_config_path):
         print("loading config")
         with open(checker_config_path, "r") as f:
             config = json.loads(f.read())
-        if "last_url" not in config:
-            config["last_url"] = ""
-        return (config["wot_path"], config["last_url"])
+        if "local_aslain_version" not in config:
+            config["local_aslain_version"] = ""
+        if "aslain_installer_version" not in config:
+            config["aslain_installer_version"] = ""
+        return (config["wot_path"], config["local_aslain_version"], config["aslain_installer_version"])
 
 def update_config(key, value):
     with open(checker_config_path, "r") as f:
@@ -166,8 +173,6 @@ def download_aslain(urllist):
                         f.write(chunk)    
                         pbar.update(len(chunk))
         print("Download Fertiggestellt")
-        with open(file_path, "w") as f:
-            f.write(url)
         return 
     except Exception as e:
         print(f"Error downloading {url}\nERROR: {e}\nRetrying with next url if possible")
@@ -178,11 +183,10 @@ update()
 
 appdata_path = os.getenv("LOCALAPPDATA")
 folder_path = os.path.join(appdata_path, "Aslain-Checker")
-file_path = os.path.join(folder_path, "last_url")
 aslain_path = os.path.join(folder_path, "aslain_installer.exe")
 checker_config_path = os.path.join(folder_path, "config.json")
 
-WOT_PATH, LAST_URL = get_config(checker_config_path)
+WOT_PATH, LOCAL_ASLAIN_VERSION, ASLAIN_INSTALLER_VERSION = get_config(checker_config_path)
 
 CONFIG_PATH = os.path.join(WOT_PATH, "mods\\configs\\spoter\\marksOnGunExtended\\marksOnGunExtended.json")
 WOT_VERSION_PATH = os.path.join(WOT_PATH, "game_info.xml")
@@ -211,10 +215,13 @@ aslain_version_short = re.search(r"\d+\.\d+\.\d", urls[0]).group(0)
 aslain_version_full = re.search(r"\d+\.\d+\.\d.+?.exe", urls[0]).group(0)[:-4]
 
 
-if url != LAST_URL:
+if aslain_version_full != LOCAL_ASLAIN_VERSION :
     print(f"Version {aslain_version_full} verfügbar!")
-
-    download_aslain(urls)
+    if aslain_version_full == ASLAIN_INSTALLER_VERSION and os.path.exists(aslain_path):
+        print("Installer already downloaded")
+    else:
+        download_aslain(urls)
+        update_config("aslain_installer_version", aslain_version_full)
     wait_for_patch()
     wait_for_version(aslain_version_short)
 
@@ -222,6 +229,9 @@ if url != LAST_URL:
     p = Popen(aslain_path)
     p.wait()
     wait_for_aslain()
+
+    update_config("local_aslain_version", aslain_version_full)
+
     print("Einstellen von MOE")
     config_moe()
     start_game()
