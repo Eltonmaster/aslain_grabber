@@ -1,4 +1,4 @@
-#v0.83
+#v0.84
 import requests
 import bs4
 import os
@@ -266,8 +266,8 @@ if aslain_version_full != LOCAL_ASLAIN_VERSION :
 
     update_config("local_aslain_version", aslain_version_full)
 
-    print("Einstellen von MOE")
-    config_moe()
+    #print("Einstellen von MOE")
+    #config_moe()
     start_game()
 
 else:
