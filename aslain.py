@@ -1,4 +1,4 @@
-#v0.84
+#v0.85
 import requests
 import bs4
 import os
@@ -237,7 +237,7 @@ soup = bs4.BeautifulSoup(resp.text, "html.parser")
 
 url = None
 
-search_keys = ["ftp.wot.modpack", "wot.flcl.eu/public", "aslain.legionriders.club", "modp.wgcdn.co/media/mod_files"]
+search_keys = ["ftp.wot.modpack", "wot.flcl.eu/public", "aslain.legionriders.club", "modp.wgcdn.co/media/mod_files", "flcl.uk"]
 urls = []
 
 for entry in soup.find_all("a", href=True):
