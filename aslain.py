@@ -1,4 +1,4 @@
-#v0.85
+#v0.86
 import requests
 import bs4
 import os
@@ -11,7 +11,7 @@ import re
 import sys
 from tqdm import tqdm
 
-DEBUG = True
+DEBUG = False
 DEV = False
 START_GAME = True
 
