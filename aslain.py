@@ -1,4 +1,4 @@
-#v0.86
+#v0.87
 import requests
 import bs4
 import os
@@ -14,6 +14,16 @@ from tqdm import tqdm
 DEBUG = False
 DEV = False
 START_GAME = True
+S = requests.Session()
+#S.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"})
+while True:
+    try:
+        S.get("https://aslain.com")
+        break
+    except Exception as e:
+        if DEV: print(e)
+        sleep(1)
+
 
 def version_compare(version1, version2):
     # version1 < version2 -> -1
@@ -50,9 +60,10 @@ def version_compare(version1, version2):
    
 
 def update():
+    global S
     if not DEV:
         print("Überprüfe auf Aslain-Checker Update")
-        online_code = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
+        online_code = S.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/aslain.py").content.decode("utf-8")
         online_version = online_code.split("\n")[0][2:]
         print(__file__)
         with open(__file__, "r") as f:
@@ -67,7 +78,7 @@ def update():
             with open(__file__, "w", encoding="utf-8") as f:
                 f.write(online_code)
             print("Installieren der pip Packages")
-            resp = requests.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
+            resp = S.get("https://raw.githubusercontent.com/Eltonmaster/aslain_grabber/main/requirements.txt").content.decode("utf-8")
             with open("temp_requirements.txt", "w", encoding="utf-8") as f:
                 f.write(resp)
             pip_process = Popen(["pip", "install", "-r", "temp_requirements.txt"])
@@ -195,10 +206,11 @@ def update_config(key, value):
         f.write(json.dumps(config))
 
 def download_aslain(urllist):
+    global S
     print("Starte Download")
     url = urllist.pop()
     try:
-        with requests.get(url, stream=True) as rq:
+        with S.get(url, stream=True) as rq:
             rq.raise_for_status()
             length_in_byte = int(rq.headers["Content-Length"])
             with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
@@ -231,8 +243,7 @@ EXECUTABLE_PATH = os.path.join(WOT_PATH, "WorldOfTanks.exe")
 if not os.path.exists(folder_path):
     os.mkdir(folder_path)
 
-
-resp = requests.get("https://aslain.com/index.php?/topic/13-download-%E2%98%85-world-of-tanks-%E2%98%85-modpack/")
+resp = S.get("https://aslain.com/index.php?/topic/13-download-%E2%98%85-world-of-tanks-%E2%98%85-modpack/")
 soup = bs4.BeautifulSoup(resp.text, "html.parser")
 
 url = None
