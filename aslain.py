@@ -1,28 +1,15 @@
-#v0.87
-import requests
-import bs4
-import os
-from time import sleep
-from time import time
+#v0.88
+import requests, bs4, os, re, sys, json, logging
+from time import sleep, time
 from subprocess import Popen
-import json
 from xml.dom import minidom
-import re
-import sys
 from tqdm import tqdm
+from logging.handlers import RotatingFileHandler
 
 DEBUG = False
 DEV = False
 START_GAME = True
 S = requests.Session()
-S.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"})
-while True:
-    try:
-        S.get("https://aslain.com")
-        break
-    except Exception as e:
-        if DEV: print(e)
-        sleep(1)
 
 
 def version_compare(version1, version2):
@@ -147,6 +134,7 @@ def wait_for_aslain():
                 if DEBUG: print(f"Aslain läuft noch - {last_line}")
                 sleep(.5)
         except:
+            LOGGER.error("Error reading log file (file blocked)?. Assuming that aslasin finished with installation")
             print("Error reading log file (file blocked?)")
             print("Aslain probably finished")
             break        
@@ -209,23 +197,63 @@ def download_aslain(urllist):
     global S
     print("Starte Download")
     url = urllist.pop()
-    try:
-        with S.get(url, stream=True) as rq:
-            rq.raise_for_status()
-            length_in_byte = int(rq.headers["Content-Length"])
-            with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
-                with open(aslain_path, "wb") as f:
-                    for chunk in rq.iter_content(chunk_size=1024):
-                        f.write(chunk)    
-                        pbar.update(len(chunk))
-        print("Download Fertiggestellt")
-        return 
-    except Exception as e:
-        print(f"Error downloading {url}\nERROR: {e}\nRetrying with next url if possible")
-        return download_aslain(urllist)
+    while True:
+        try:
+            with S.get(url, stream=True) as rq:
+                rq.raise_for_status()
+                length_in_byte = int(rq.headers["Content-Length"])
+                with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
+                    with open(aslain_path, "wb") as f:
+                        for chunk in rq.iter_content(chunk_size=1024):
+                            f.write(chunk)    
+                            pbar.update(len(chunk))
+            print("Download Fertiggestellt")
+            return 
+        except ConnectionResetError as con_ret:
+            LOGGER.error(con_ret)
+            print("Connection Reset Error: "+con_ret)
+            sleep(.25)
+        except Exception as e:
+            LOGGER.error(con_ret)
+            print(f"Error downloading {url}\nERROR: {e}\nRetrying with next url if possible")
+            return download_aslain(urllist)
+        
+def init_logging():
+    formatter = logging.Formatter(
+        fmt='%(asctime)s : %(levelname)s: %(filename)s::%(funcName)s:%(lineno)d %(message)s',
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    
+    file_handler = logging.handlers.TimedRotatingFileHandler("script.log", when="m", interval=1, backupCount=5)
+    file_handler.setFormatter(formatter)
+
+    logger = logging.getLogger("Aslain")
+    #logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Logging initialized") 
+
+    return logger
 
 
 update()
+LOGGER = init_logging()
+
+#S.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0"})
+while True:
+    try:
+        S.get("https://aslain.com")
+        break
+    except Exception as e:
+        LOGGER.info("Could not reach https://aslain.com, retrying...")
+        LOGGER.debug(e)
+        if DEV: print(e)
+        sleep(.25)
+
+
 
 appdata_path = os.getenv("LOCALAPPDATA")
 folder_path = os.path.join(appdata_path, "Aslain-Checker")
@@ -290,6 +318,7 @@ else:
     sleep(1)
     print("Closing in 1")
     sleep(1)
+    LOGGER.info("Skript ran successfully. Shutting down...")
 
 
 
