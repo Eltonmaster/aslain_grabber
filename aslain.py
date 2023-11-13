@@ -1,9 +1,10 @@
-#v0.88
+#v0.89
 import requests, bs4, os, re, sys, json, logging
 from time import sleep, time
 from subprocess import Popen
 from xml.dom import minidom
 from tqdm import tqdm
+from urllib3.exceptions import ProtocolError
 from logging.handlers import RotatingFileHandler
 
 DEBUG = False
@@ -212,6 +213,12 @@ def download_aslain(urllist):
         except ConnectionResetError as con_ret:
             LOGGER.error(con_ret)
             print("Connection Reset Error: "+con_ret)
+            sleep(.25)
+        except requests.exceptions.ConnectionError as con_ret:
+            LOGGER.error(con_ret)
+            sleep(.25)
+        except ProtocolError as prot_err:
+            LOGGER.error(prot_err)
             sleep(.25)
         except Exception as e:
             LOGGER.error(con_ret)
