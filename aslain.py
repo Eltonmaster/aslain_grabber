@@ -1,5 +1,5 @@
-#v0.94
-import requests, bs4, os, re, sys, json, logging
+#v0.95
+import requests, bs4, os, re, sys, json, logging, locale
 from time import sleep, time
 from subprocess import Popen
 from xml.dom import minidom
@@ -262,16 +262,32 @@ def wait_for_window(window_title, app):
             sleep(.1)
 
 def automate_aslain_install():
+    language = get_language()
     print("Running the aslain installer automated")
     app = Application().start("./aslain_installer.exe")
-    app = wait_for_window("Select Installer Language", app)
-    app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=30).click()
-    app = wait_for_window("Aslain's WoT Modpack - Welcome Page", app)
-    for i in range(6):
-        app["TWizardForm"].child_window(title="&Next").wait("enabled", timeout=30).click()
-    app["TWizardForm"].child_window(title="&Install").wait("enabled", timeout=30).click()
-    app["TWizardForm"].child_window(title="&Finish").wait("enabled", timeout=60).click()
+    if language == "german":
+        app = wait_for_window("Setup-Sprache auswählen", app)
+        app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=30).click()
+        app = wait_for_window("Aslain's WoT Modpack - Welcome Page", app)
+        for i in range(6):
+            app["TWizardForm"].child_window(title="&Weiter").wait("enabled", timeout=30).click()
+        app["TWizardForm"].child_window(title="&Installieren").wait("enabled", timeout=30).click()
+        app["TWizardForm"].child_window(title="&Fertigstellen").wait("enabled", timeout=60).click()
+    else:
+        app = wait_for_window("Select Installer Language", app)
+        app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=30).click()
+        app = wait_for_window("Aslain's WoT Modpack - Welcome Page", app)
+        for i in range(6):
+            app["TWizardForm"].child_window(title="&Next").wait("enabled", timeout=30).click()
+        app["TWizardForm"].child_window(title="&Install").wait("enabled", timeout=30).click()
+        app["TWizardForm"].child_window(title="&Finish").wait("enabled", timeout=60).click()
     print("Aslain successfully installed")
+
+def get_language():
+    if locale.getlocale()[0] == "de_DE":
+        return "german"
+    else:
+        return "english" 
 
 
 update()
