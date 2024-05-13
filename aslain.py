@@ -1,4 +1,4 @@
-#v0.92
+#v0.93
 import requests, bs4, os, re, sys, json, logging
 from time import sleep, time
 from subprocess import Popen
