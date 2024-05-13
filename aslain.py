@@ -1,4 +1,4 @@
-#v0.90
+#v0.91
 import requests, bs4, os, re, sys, json, logging
 from time import sleep, time
 from subprocess import Popen
@@ -263,12 +263,12 @@ def automate_aslain_install():
     print("Running the aslain installer automated")
     app = Application().start("./aslain_installer.exe")
     app = wait_for_window("Select Installer Language", app)
-    app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=10).click()
+    app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=30).click()
     app = wait_for_window("Aslain's WoT Modpack - Welcome Page", app)
     for i in range(6):
-        app["TWizardForm"].child_window(title="&Next").wait("enabled", timeout=10).click()
-    app["TWizardForm"].child_window(title="&Install").wait("enabled", timeout=15).click()
-    app["TWizardForm"].child_window(title="&Finish").wait("enabled", timeout=30).click()
+        app["TWizardForm"].child_window(title="&Next").wait("enabled", timeout=30).click()
+    app["TWizardForm"].child_window(title="&Install").wait("enabled", timeout=30).click()
+    app["TWizardForm"].child_window(title="&Finish").wait("enabled", timeout=60).click()
     print("Aslain successfully installed")
 
 
