@@ -1,4 +1,4 @@
-#v0.89
+#v0.90
 import requests, bs4, os, re, sys, json, logging
 from time import sleep, time
 from subprocess import Popen
@@ -6,6 +6,12 @@ from xml.dom import minidom
 from tqdm import tqdm
 from urllib3.exceptions import ProtocolError
 from logging.handlers import RotatingFileHandler
+from pywinauto.application import Application
+from pywinauto import timings
+from pywinauto.findwindows import ElementNotFoundError
+import warnings
+warnings.simplefilter('ignore', category=UserWarning)
+
 
 DEBUG = False
 DEV = False
@@ -205,7 +211,7 @@ def download_aslain(urllist):
                 length_in_byte = int(rq.headers["Content-Length"])
                 with tqdm(total=length_in_byte, unit="byte", unit_scale=True) as pbar:
                     with open(aslain_path, "wb") as f:
-                        for chunk in rq.iter_content(chunk_size=1024):
+                        for chunk in rq.iter_content(chunk_size=1024*1024):
                             f.write(chunk)    
                             pbar.update(len(chunk))
             print("Download Fertiggestellt")
@@ -244,6 +250,26 @@ def init_logging():
     logger.debug("Logging initialized") 
 
     return logger
+
+def wait_for_window(window_title, app):
+    while True:
+        try:
+            app.connect(title=window_title)
+            return app
+        except ElementNotFoundError as ex:
+            sleep(.1)
+
+def automate_aslain_install():
+    print("Running the aslain installer automated")
+    app = Application().start("./aslain_installer.exe")
+    app = wait_for_window("Select Installer Language", app)
+    app["TSelectLanguageForm"].child_window(title="OK").wait("enabled", timeout=10).click()
+    app = wait_for_window("Aslain's WoT Modpack - Welcome Page", app)
+    for i in range(6):
+        app["TWizardForm"].child_window(title="&Next").wait("enabled", timeout=10).click()
+    app["TWizardForm"].child_window(title="&Install").wait("enabled", timeout=15).click()
+    app["TWizardForm"].child_window(title="&Finish").wait("enabled", timeout=30).click()
+    print("Aslain successfully installed")
 
 
 update()
@@ -306,9 +332,7 @@ if aslain_version_full != LOCAL_ASLAIN_VERSION :
     wait_for_version(aslain_version_short)
 
     print("Starte den neuen Installer")
-    p = Popen(aslain_path)
-    p.wait()
-    wait_for_aslain()
+    automate_aslain_install()
 
     update_config("local_aslain_version", aslain_version_full)
 
