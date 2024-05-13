@@ -1,4 +1,4 @@
-#v0.91
+#v0.92
 import requests, bs4, os, re, sys, json, logging
 from time import sleep, time
 from subprocess import Popen
@@ -172,11 +172,13 @@ def config_moe():
 def get_config(checker_config_path):
     if not os.path.exists(checker_config_path):
         input("Es liegt noch keine Config-Datei vor. Bitte wähle den World of Tanks root Ordner aus. (fortfahren mit ENTER)")
-        import tkinter as tk
-        from tkinter import filedialog
+        import tkinter as tk      
+        
         root = tk.Tk()
-        root.withdraw()
-        wot_path = filedialog.askdirectory()
+        root.attributes('-topmost', True)  # Display the dialog in the foreground.
+        root.iconify()  # Hide the little window.
+        wot_path = tk.askdirectory(title='...', parent=root)
+        root.destroy()  # Destroy the root window when folder selected.
         
         config = {"wot_path":wot_path, "local_aslain_version": "", "aslain_installer_version":""}
         with open(checker_config_path, "w") as f:
